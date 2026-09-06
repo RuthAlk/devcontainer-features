@@ -1,0 +1,17 @@
+{
+  "id": "claude-setup",
+  "version": "1.6.0",
+  "name": "Claude Code setup",
+  "description": "Persists the whole ~/.claude directory and ~/.claude.json (credentials, sessions, memory, OAuth account, trust settings) across rebuilds, on top of the official claude-code feature for the CLI itself. Seeds a default permission policy on first use that requires approval for anything reaching outside the container (git push/fetch/clone, ssh/scp, curl/wget, gh, package installs, WebFetch) while keeping local file edits and read-only exploration frictionless, and forces a real approval prompt on edits to ~/.claude/settings.json itself via a path-scoped permissions.ask rule.",
+  "options": {},
+  "dependsOn": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  "mounts": [
+    {
+      "source": "claude-home-${devcontainerId}",
+      "target": "/var/lib/claude-home",
+      "type": "volume"
+    }
+  ]
+}
