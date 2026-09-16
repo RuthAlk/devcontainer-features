@@ -9,10 +9,26 @@ written once.
 - **claude-setup** (`src/claude-setup`) — depends on the official
   `ghcr.io/anthropics/devcontainer-features/claude-code` feature for the CLI itself, and adds
   what that one doesn't: persists the whole `~/.claude` directory and `~/.claude.json`
-  (credentials, sessions, memory, OAuth account, trust settings) across rebuilds via a
-  per-devcontainer named volume, so Claude remembers context and stays logged in for a given
-  project even after the container is rebuilt from scratch. The volume is scoped per project
-  using `${devcontainerId}`, not shared across projects.
+  (credentials, sessions, memory, OAuth account, trust settings) across rebuilds via a single
+  named volume (`claude-home`) shared by every devcontainer on the host, so Claude stays logged
+  in and keeps memory/session history across rebuilds *and* across projects — log in once, use
+  everywhere.
+
+  Most of what lives under `~/.claude` is already namespaced by working-directory path (session
+  history, memory) under `~/.claude/projects/<encoded-cwd>/...`, so different projects don't
+  collide on that data even though the volume is shared — it just becomes visible to every
+  container instead of isolated per project. The exceptions are `settings.json` (the permission
+  policy) and `~/.claude.json` (OAuth token, per-project trust map), which are single shared
+  files: an edit made from one project's devcontainer applies everywhere, and if you run two
+  devcontainers at once, a near-simultaneous edit to either file is last-writer-wins (no
+  corruption — writes are write-then-rename) — the same tradeoff a bare host install already has
+  running two concurrent `claude` sessions in different terminals.
+
+  Before v2.0.0 this feature scoped the volume per project using `${devcontainerId}`, so each
+  devcontainer got its own credentials/settings/memory. Upgrading to v2.0.0 in an existing
+  project switches it onto the shared `claude-home` volume; the old per-`devcontainerId` volumes
+  are left behind on the host (not deleted, not migrated) and can be removed manually via
+  `docker volume rm` once no longer needed.
 
   The first time the volume is used (i.e. no `settings.json` exists in it yet), it also seeds a
   default permission policy: local file edits (`Edit`/`Write`/`NotebookEdit`) and read-only
