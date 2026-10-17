@@ -11,6 +11,26 @@ TARGET_HOME="${TARGET_HOME:-/home/${TARGET_USER}}"
 # ghcr.io/anthropics/devcontainer-features/claude-code, which runs before
 # this script (per the Dev Container Features installation-order spec).
 
+# The upstream feature installs the CLI via a root-owned global npm
+# install, so `claude update` fails for the remote user ("Insufficient
+# permissions to install update") and containers stay on whatever version
+# the build cached. Hand just the claude-code package dir to the remote
+# user so in-container self-update works. Best-effort: skip quietly if the
+# package can't be located (e.g. a native install).
+CLAUDE_BIN="$(command -v claude || true)"
+if [ -n "${CLAUDE_BIN}" ]; then
+  CLAUDE_PKG="$(dirname "$(readlink -f "${CLAUDE_BIN}")")"
+  while [ "${CLAUDE_PKG}" != "/" ] && [ "$(basename "${CLAUDE_PKG}")" != "claude-code" ]; do
+    CLAUDE_PKG="$(dirname "${CLAUDE_PKG}")"
+  done
+  if [ "$(basename "${CLAUDE_PKG}")" = "claude-code" ]; then
+    chown -R "${TARGET_USER}:${TARGET_USER}" "${CLAUDE_PKG}"
+    # npm replaces the package dir on update, so the parent (@anthropic-ai)
+    # and the bin dir holding the symlink must be writable too.
+    chown "${TARGET_USER}:${TARGET_USER}" "$(dirname "${CLAUDE_PKG}")" "$(dirname "${CLAUDE_BIN}")"
+  fi
+fi
+
 # Persist the whole ~/.claude directory (credentials, sessions, memory)
 # across rebuilds via the volume mounted at PERSIST_DIR (see
 # devcontainer-feature.json). The mount target can't reference TARGET_HOME
