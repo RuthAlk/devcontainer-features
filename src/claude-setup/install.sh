@@ -25,9 +25,13 @@ if [ -n "${CLAUDE_BIN}" ]; then
   done
   if [ "$(basename "${CLAUDE_PKG}")" = "claude-code" ]; then
     chown -R "${TARGET_USER}:${TARGET_USER}" "${CLAUDE_PKG}"
-    # npm replaces the package dir on update, so the parent (@anthropic-ai)
-    # and the bin dir holding the symlink must be writable too.
-    chown "${TARGET_USER}:${TARGET_USER}" "$(dirname "${CLAUDE_PKG}")" "$(dirname "${CLAUDE_BIN}")"
+    # npm replaces the package dir on update, so the parent (@anthropic-ai),
+    # the global node_modules dir above it (npm creates staging entries
+    # there, and claude checks it is writable) and the bin dir holding the
+    # symlink must be writable too. Non-recursive: other global packages
+    # stay root-owned.
+    CLAUDE_SCOPE="$(dirname "${CLAUDE_PKG}")"
+    chown "${TARGET_USER}:${TARGET_USER}" "${CLAUDE_SCOPE}" "$(dirname "${CLAUDE_SCOPE}")" "$(dirname "${CLAUDE_BIN}")"
   fi
 fi
 
