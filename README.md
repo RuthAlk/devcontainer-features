@@ -13,6 +13,9 @@ written once.
   named volume (`claude-home`) shared by every devcontainer on the host, so Claude stays logged
   in and keeps memory/session history across rebuilds *and* across projects — log in once, use
   everywhere.
+  It also makes the npm-installed CLI writable by the remote user (the upstream feature leaves it
+  root-owned), so `claude update` works inside the container instead of failing with
+  "Insufficient permissions".
 
   Most of what lives under `~/.claude` is already namespaced by working-directory path (session
   history, memory) under `~/.claude/projects/<encoded-cwd>/...`, so different projects don't
